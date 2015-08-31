@@ -1,5 +1,5 @@
 {
-  "name": "RAML2Postman",
+  "name": "raml-to-postman",
   "version": "0.0.1",
   "private": true,
   "description": "Convert a given RAML spec to POSTMan spec",
