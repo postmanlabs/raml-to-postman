@@ -143,7 +143,8 @@ var converter = {
 
             // Headers
             _.forOwn(req.headers, function(val, header) {
-                headerString += header + ": " + val.example + "\n";
+              var headerValue = (val.example) ? val.example : "";
+              headerString += header + ": " + headerValue + "\n";
             });
 
             // Query Parameters.
