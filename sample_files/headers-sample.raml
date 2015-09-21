@@ -1,0 +1,36 @@
+#%RAML 0.8
+title: mini-from-raml
+version: 0.0
+baseUri: https://www.example.com
+
+/tokens:
+  post:
+    headers:
+      X-MindMeld-Appid:
+        example: "{{Appid}}"
+      X-MindMeld-Appsecret:
+        example: "{{Appsecret}}"
+    responses:
+      200:
+        body:
+          application/json:
+
+/users/{userid}/sessions:
+  get:
+    headers:
+      X-MindMeld-Access-Token:
+        example: "{{token}}"
+    responses:
+      200:
+        body:
+          application/json:
+
+/sessions/{sessionid}:
+  get:
+    headers:
+      X-MindMeld-Access-Token:
+        example: "{{token}}"
+    responses:
+      200:
+        body:
+          application/json:
