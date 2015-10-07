@@ -39,6 +39,24 @@ var converter = {
         });
     },
 
+    parseRaw: function (ramlObject, cb, cbErr) {
+        var self = this,
+            converted,
+            env;
+        try {
+            self.convert(ramlObject);
+            if(self.validate()) {
+                converted = self.sampleFile;
+                env = _.clone(converted.environment, true);
+                delete  converted.environment;
+                cb(converted, env);
+            }
+        }
+        catch (e) {
+            cbErr(e);
+        }
+    },
+
     parseFile: function(filename, callback) {
         var oldThis = this;
         raml.loadFile(filename).then(function(data) {
