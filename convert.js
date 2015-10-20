@@ -205,7 +205,8 @@ var converter = {
 
                 // Haven't found a way to upload files in the raml spec.
                 if (request.dataMode === 'urlencoded' || req.dataMode === 'multipart/form-data') {
-                    _.forOwn(val.formParameters, function(value, param) {
+                    // val can be null. we need to skip it if it is.
+                    val && _.forOwn(val.formParameters, function(value, param) {
                         var obj = {};
                         obj[param] = '';
                         request.data.push(obj);
