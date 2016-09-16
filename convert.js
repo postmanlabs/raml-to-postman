@@ -418,6 +418,7 @@ var converter = {
 
         // Set to true to generate test file.
         this.test = options.test;
+
         this.parseFile(file, cb);
     },
 
@@ -438,6 +439,7 @@ var converter = {
     },
 
     validate: function() {
+
         if (validator.validateJSON('c', this.sampleFile).status) {
             console.log('The conversion was successful');
             return true;
