@@ -3,7 +3,7 @@ var uuid = require('node-uuid');
 var path = require('path');
 var validator = require('postman_validator');
 var raml = require('raml-parser');
-var _ = require('lodash');
+var _ = require('lodash').noConflict();
 var async = require('async');
 
 var converter = {
@@ -418,7 +418,6 @@ var converter = {
 
         // Set to true to generate test file.
         this.test = options.test;
-
         this.parseFile(file, cb);
     },
 
@@ -439,7 +438,6 @@ var converter = {
     },
 
     validate: function() {
-
         if (validator.validateJSON('c', this.sampleFile).status) {
             console.log('The conversion was successful');
             return true;

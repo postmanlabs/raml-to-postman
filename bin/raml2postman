@@ -4,7 +4,7 @@ var program = require('commander');
 var Converter = require('../convert.js');
 var fs = require('fs');
 var path = require('path');
-var _ = require('lodash');
+var _ = require('lodash').noConflict();
 
 function parseArguments() {
     program
@@ -38,14 +38,12 @@ function parseArguments() {
     var group = program.group || false;
     var prettyPrint = program.pretty || false;
     var test = program.test || false;
+    var ramlInput = fs.readFileSync('sample_files/apptest.raml');
 
     if (test) {
 
         // file, options, callback
-        Converter._convert('sample_files/github-api-v3.raml', {
-            group: true,
-            test: true,
-        }, function(output, environment) {
+        Converter.parseString(ramlInput, function(output, environment) {
             var data;
             var env;
 
@@ -58,13 +56,14 @@ function parseArguments() {
             }
 
             if (_.isEqual(output, data)) {
-
                 if(_.isEqual(environment, env)){
                     console.log('Test has passed');    
                 }else{
                     console.log('Generated environment file does not match expected environment, test has failed');
                 }
             } else {
+                console.log("OUTPUT:  " , output);
+                //console.log("DATA: " , data);
                 console.log('Generated collection does not match expected collection, test has failed');
             }
             process.exit(0);
