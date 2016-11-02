@@ -1,6 +1,6 @@
 {
   "name": "@postman/raml-to-postman",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Convert a given RAML spec to POSTMan spec",
   "main": "convert.js",
   "bin": {
