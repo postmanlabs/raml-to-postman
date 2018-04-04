@@ -1,5 +1,5 @@
 var fs = require('fs');
-var uuid = require('node-uuid');
+var uuidv4 = require('uuid/v4');
 var path = require('path');
 var validator = require('postman_validator');
 var raml = require('raml-parser');
@@ -426,7 +426,7 @@ var converter = {
         if (this.test) {
             return "";
         } else {
-            return uuid.v4();
+            return uuidv4();
         }
     },
 

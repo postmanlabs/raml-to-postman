@@ -1,17 +1,17 @@
 {
   "name": "@postman/raml-to-postman",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Convert a given RAML spec to POSTMan spec",
   "main": "convert.js",
   "bin": {
     "raml2postman": "./bin/raml2postman"
   },
   "dependencies": {
-    "node-uuid": ">= 1.4.1",
+    "uuid": ">=3.2.1",
     "postman_validator": ">= 0.0.4",
-    "lodash": "3.10.0",
+    "lodash": ">=4.17.5",
     "raml-parser": ">= 0.8.7",
-    "commander": ">=2.3.0",
+    "commander": ">=2.15.1",
     "async": "*"
   },
   "author": "Surya Pappoppula",
