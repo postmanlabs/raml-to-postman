@@ -21,7 +21,7 @@ var converter = {
                 // Validate before invoking callback;
                 if (oldThis.validate()) {
                     var sf = oldThis.sampleFile;
-                    var env = _.clone(sf.environment, true);
+                    var env = _.cloneDeep(sf.environment);
 
                     delete sf.environment;
 
@@ -47,7 +47,7 @@ var converter = {
             self.convert(ramlObject);
             if(self.validate()) {
                 converted = self.sampleFile;
-                env = _.clone(converted.environment, true);
+                env = _.cloneDeep(converted.environment);
                 delete  converted.environment;
                 cb(converted, env);
             }
@@ -66,7 +66,7 @@ var converter = {
                 // Validate before invoking callback;
                 if (oldThis.validate()) {
                     var sf = oldThis.sampleFile;
-                    var env = _.clone(sf.environment, true);
+                    var env = _.cloneDeep(sf.environment);
 
                     delete sf.environment;
 
@@ -90,22 +90,22 @@ var converter = {
 
         var paramDescription = 'Parameters:\n\n';
 
-        _.forOwn(res.uriParameters, function(val, urlParam) {
+        _.forOwn(res.uriParameters, (val, urlParam) => {
             res.relativeUri = res.relativeUri.replace('{' + urlParam + '}', ":" + urlParam);
             this.addEnvKey(urlParam, val.type, val.displayName);
 
             val.description = val.description || "";
             paramDescription += urlParam + ": " + val.description + '\n\n';
 
-        }, this);
+        });
 
         // Override the parentUri params, if they are specified here additionally.
         // Only new params affect this part. Old params have been converted already.
 
-        _.forOwn(res.baseUriParameters, function(val, urlParam) {
+        _.forOwn(res.baseUriParameters, (val, urlParam) => {
             baseUri = baseUri.replace('{' + urlParam + '}', ":" + urlParam);
             this.addEnvKey(urlParam, val.type, val.displayName);
-        }, this);
+        });
 
         // All occurences of baseUriParams have been dealt earlier.
         var resourceUri = baseUri + res.relativeUri;
@@ -127,10 +127,10 @@ var converter = {
         }
 
         // Convert own methods.
-        _.forEach(res.methods, function(req) {
+        _.forEach(res.methods, (req) => {
 
             // Make a deep copy of the the sampleRequest.
-            var request = _.clone(this.sampleRequest, true);
+            var request = _.cloneDeep(this.sampleRequest);
             request.collectionId = this.sampleFile.id;
 
             var headerString = '';
@@ -160,13 +160,13 @@ var converter = {
             request.url = resourceUri;
 
             // Headers
-            _.forOwn(req.headers, function(val, header) {
+            _.forOwn(req.headers, (val, header) => {
               var headerValue = (val.example) ? val.example : "";
               headerString += header + ": " + headerValue + "\n";
             });
 
             // Query Parameters.
-            _.forOwn(req.queryParameters, function(val, param) {
+            _.forOwn(req.queryParameters, (val, param) => {
                 if (!queryFlag) {
                     request.url += '?';
                 } else {
@@ -177,7 +177,7 @@ var converter = {
             });
 
             // Body
-            _.forOwn(req.body, function(val, bodyParam) {
+            _.forOwn(req.body, (val, bodyParam) => {
 
                 if (bodyParam === 'application/x-www-form-urlencoded') {
                     request.dataMode = 'urlencoded';
@@ -206,23 +206,23 @@ var converter = {
                 // Haven't found a way to upload files in the raml spec.
                 if (request.dataMode === 'urlencoded' || req.dataMode === 'multipart/form-data') {
                     // val can be null. we need to skip it if it is.
-                    val && _.forOwn(val.formParameters, function(value, param) {
+                    val && _.forOwn(val.formParameters, (value, param) => {
                         var obj = {};
                         obj[param] = '';
                         request.data.push(obj);
                     });
                 }
-            }, this);
+            });
 
             request.headers = headerString;
             this.sampleFile.requests.push(request);
             this.currentFolder.order.push(request.id);
-        }, this);
+        });
 
         // Convert child resources.
-        _.forEach(res.resources, function(subRes) {
+        _.forEach(res.resources, (subRes) => {
             this.convertResource(subRes, resourceUri);
-        }, this);
+        });
 
         // Check if the current resource is a top level resource.
         if (parentUri === this.data.baseUri) {
@@ -264,9 +264,9 @@ var converter = {
                 obj = {};
 
                 // For each property, repeat the same thing
-                _.forOwn(schema.properties, function(val, item) {
+                _.forOwn(schema.properties, (val, item) => {
                     obj[item] = this.schemaToJSON(val);
-                }, this);
+                });
 
                 break;
             case 'array':
@@ -292,8 +292,8 @@ var converter = {
 
     _modifyTraits: function() {
         // Make the traits property more accessible.
-        this.data.traits = _.reduce(this.data.traits, function(acc, trait) {
-            _.forOwn(trait, function(val, key) {
+        this.data.traits = _.reduce(this.data.traits, (acc, trait) => {
+            _.forOwn(trait, (val, key) => {
                 acc[key] = val;
             });
 
@@ -302,8 +302,8 @@ var converter = {
     },
 
     _modifySchemas: function() {
-        this.data.schemas = _.reduce(this.data.schemas, function(acc, schema) {
-            _.forOwn(schema, function(val, key) {
+        this.data.schemas = _.reduce(this.data.schemas, (acc, schema) => {
+            _.forOwn(schema, (val, key) => {
                 acc[key] = val;
             });
 
@@ -312,8 +312,8 @@ var converter = {
     },
 
     _modifyResourceTypes: function() {
-        this.data.resourceTypes = _.reduce(this.data.resourceTypes, function(acc, resourceType) {
-            _.forOwn(resourceType, function(val, key) {
+        this.data.resourceTypes = _.reduce(this.data.resourceTypes, (acc, resourceType) => {
+            _.forOwn(resourceType, (val, key) => {
                 acc[key] = val;
             });
 
@@ -367,12 +367,12 @@ var converter = {
         sf.environment.id = this.generateId();
 
         // BaseURI Conversion
-        _.forOwn(this.data.baseUriParameters, function(val, param) {
+        _.forOwn(this.data.baseUriParameters,(val, param) => {
             // Version will be specified in the baseUriParameters
             this.data.baseUri = this.data.baseUri.replace("{" + param + "}", ":" + param);
 
             this.addEnvKey(param, val.type, val.displayName);
-        }, this);
+        });
 
         // Convert schemas to objects.
         // Will be parsed later.
@@ -382,29 +382,29 @@ var converter = {
         //     val = this.schemaToJSON(JSON.parse(val));
         // }, this);
 
-        _.forEach(this.data.resources, function(resource) {
+        _.forEach(this.data.resources, (resource) => {
             // Initialize the currentFolder
             this.currentFolder.id = sf.id;
 
             // Top Level conversion.
             this.convertResource(resource, this.data.baseUri);
-        }, this);
+        });
 
         //Add the environment variables.
-        _.forOwn(this.env, function(val) {
+        _.forOwn(this.env, (val) => {
             sf.environment.values.push(val);
-        }, this);
+        });
 
         if (!this.group) {
 
             // Copy over the ids in the order field of each folder
             // to the global order field
 
-            _.forEach(sf.folders, function(folder) {
-                _.forEach(folder.order, function(ord) {
+            _.forEach(sf.folders, (folder) => {
+                _.forEach(folder.order, (ord) => {
                     sf.order.push(ord);
-                }, this);
-            }, this);
+                });
+            });
 
             // If grouping is disabled, reset the folders.
             sf.folders = [];
