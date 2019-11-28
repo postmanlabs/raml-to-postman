@@ -1,8 +1,14 @@
 {
   "name": "@postman/raml-to-postman",
   "version": "1.0.6",
-  "description": "Convert a given RAML spec to POSTMan spec",
-  "main": "convert.js",
+  "description": "Convert a given RAML spec to Postman spec",
+  "main": "index.js",
+  "com_postman_plugin": {
+    "plugin_type": "importer",
+    "name": "RAML 0.8 to Postman",
+    "source_format": "RAML0.8",
+    "source_format_name": "RAML 0.8"
+  },
   "bin": {
     "raml2postman": "./bin/raml2postman"
   },
@@ -14,7 +20,7 @@
     "commander": ">=2.15.1",
     "async": "*"
   },
-  "author": "Surya Pappoppula",
+  "author": "Postman Labs <help@getpostman.com>",
   "license": "Apache",
   "devDependencies": {},
   "scripts": {
