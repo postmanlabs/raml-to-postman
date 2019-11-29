@@ -1,5 +1,6 @@
 var converter = require('./lib/convert'),
-    fs = require('fs');
+    fs = require('fs'),
+    yaml = require('js-yaml');
 module.exports = {
     getOptions: function() {
         return [];
@@ -52,14 +53,16 @@ module.exports = {
             data = fs.readFileSync(input.data).toString();
             data = data.trim();
             if (data.startsWith('#%RAML 0.8')) {
-                return {result: true};
+                data = yaml.safeLoad(data);
+                return { result: typeof data === 'object' && data.hasOwnProperty('title') };
             }
             return { result: false };
         }
         else if(input.type === 'string') {
             data = input.data.trim();
             if (data.startsWith('#%RAML 0.8')) {
-                return {result: true};
+                data = yaml.safeLoad(data);
+                return { result: typeof data === 'object' && data.hasOwnProperty('title') };
             }
             return { result: false };
         }
