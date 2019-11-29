@@ -4,3 +4,6 @@ out.json
 
 # Intellij
 .idea/
+
+#vscode
+.vscode/
