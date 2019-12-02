@@ -2,7 +2,11 @@ var converter = require('./lib/convert'),
     fs = require('fs'),
     _ = require('lodash'),
     validateRAML = (data) => {
+        // check if it starts with #%RAML 0.8
         if (data.startsWith('#%RAML 0.8')) {
+            // title property is a must for RAML0.8 specs
+            // most of the specs have title: in the second line itself
+            // hence to avoid splitting the whole file by newline and then checking for title field
             if (data.startsWith('#%RAML 0.8\ntitle:')) {
                 return { result: true };
             }
@@ -17,7 +21,7 @@ var converter = require('./lib/convert'),
                 else {
                     return {
                         result: false,
-                        reason: 'RAML 0.8 specification must habve title property'
+                        reason: 'RAML 0.8 specification must have title property'
                     }
                 }
             }
@@ -34,6 +38,7 @@ module.exports = {
         return [];
     },
     convert: function(input, options, callback) {
+        // this function will be called by parseString function if conversion was successful
         var success = (collection, environment) => {
             return callback(null, {
                 result: true,
@@ -49,6 +54,7 @@ module.exports = {
                 ]
             });
         },
+        // this function will be called by parseString function if conversion failed
         failure = (error) => {
             if(typeof error === 'string' && error.includes('cannot fetch')) {
                 return callback({
