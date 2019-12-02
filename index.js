@@ -107,7 +107,7 @@ importer = {
                 convertedSpecs = [];
 
             if (_.isEmpty(rootSpecs)) {
-                return cb(null, {
+                return callback(null, {
                     result: false,
                     reason: 'Imported folder does not contain Root of the RAML 0.8 Specs.'
                 });
