@@ -17,7 +17,6 @@
     "postman_validator": ">= 0.0.4",
     "lodash": ">=4.17.5",
     "raml-parser": ">= 0.8.7",
-    "js-yaml": "3.13.1",
     "commander": ">=2.15.1",
     "async": "*"
   },
