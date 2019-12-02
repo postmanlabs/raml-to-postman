@@ -1,6 +1,34 @@
 var converter = require('./lib/convert'),
     fs = require('fs'),
-    yaml = require('js-yaml');
+    _ = require('lodash'),
+    validateRAML = (data) => {
+        if (data.startsWith('#%RAML 0.8')) {
+            if (data.startsWith('#%RAML 0.8\ntitle:')) {
+                return { result: true };
+            }
+            else {
+                let dataArray = data.split('\n'),
+                titleExist = _.find(dataArray, (element) => {
+                    return element.startsWith('title:');
+                })
+                if (titleExist) {
+                    return { result: true }
+                }
+                else {
+                    return {
+                        result: false,
+                        reason: 'RAML 0.8 specification must habve title property'
+                    }
+                }
+            }
+        }
+        else {
+            return {
+                result: false,
+                reason: 'RAML 0.8 specification must have #%RAML 0.8 at beginning of the file'
+            }
+        }
+    };
 module.exports = {
     getOptions: function() {
         return [];
@@ -52,19 +80,11 @@ module.exports = {
         if (input.type === 'file') {
             data = fs.readFileSync(input.data).toString();
             data = data.trim();
-            if (data.startsWith('#%RAML 0.8')) {
-                data = yaml.safeLoad(data);
-                return { result: typeof data === 'object' && data.hasOwnProperty('title') };
-            }
-            return { result: false };
+            return validateRAML(data);
         }
         else if(input.type === 'string') {
             data = input.data.trim();
-            if (data.startsWith('#%RAML 0.8')) {
-                data = yaml.safeLoad(data);
-                return { result: typeof data === 'object' && data.hasOwnProperty('title') };
-            }
-            return { result: false };
+            return validateRAML(data);
         }
         else {
             return { 
