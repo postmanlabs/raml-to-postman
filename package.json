@@ -1,6 +1,6 @@
 {
-  "name": "@postman/raml-to-postman",
-  "version": "2.0.0",
+  "name": "raml-to-postman",
+  "version": "2.0.1",
   "description": "Convert a given RAML spec to Postman spec",
   "main": "index.js",
   "com_postman_plugin": {
@@ -15,7 +15,7 @@
   "dependencies": {
     "uuid": ">=3.2.1",
     "postman_validator": ">= 0.0.4",
-    "lodash": ">=4.17.5",
+    "lodash": "4.17.13",
     "raml-parser": ">= 0.8.7",
     "commander": ">=2.15.1",
     "async": "*"
