@@ -1,3 +1,6 @@
+
+[![Greenkeeper badge](https://badges.greenkeeper.io/postmanlabs/raml-to-postman.svg)](https://greenkeeper.io/)
+
 A RAML to POSTMan converter.
 
 Usage examples:
