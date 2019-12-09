@@ -39,7 +39,7 @@ function validateRAML (data) {
         else {
             let dataArray = data.split('\n'),
             titleExist = _.find(dataArray, (element) => {
-                return element.startsWith('title:');
+                return element.trim().startsWith('title:');
             })
             if (titleExist) {
                 return { result: true }
