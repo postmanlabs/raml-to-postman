@@ -112,6 +112,12 @@ importer = {
                     reason: 'Imported folder does not contain Root of the RAML 0.8 Specs.'
                 });
             }
+            else if (rootSpecs.length > 1) {
+                return callback(null, {
+                    result: false,
+                    reason: 'Imported folder contains multiple Root of the RAML 0.8 Specs.'
+                });
+            }
 
             async.each(rootSpecs, (rootSpec, cb) => {
                 var content = fs.readFileSync(rootSpec, 'utf8'),
