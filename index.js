@@ -121,18 +121,24 @@ importer = {
 
             async.each(rootSpecs, (rootSpec, cb) => {
                 var content = fs.readFileSync(rootSpec, 'utf8'),
-                    reader = new ramlParser.FileReader(function (path) {
+                    reader = new ramlParser.FileReader(function (filePath) {
                         return new Promise(function (resolve, reject) {
-                            var decodedFullPath = decodeURIComponent(path);
+                            var targetFilePath = decodeURIComponent(filePath);
 
-                            if (_.includes(allFiles, decodedFullPath) && fs.existsSync(decodedFullPath)) {
-                                resolve(fs.readFileSync(decodedFullPath).toString());
+                            if (process.platform == 'win32' || process.platform == 'win64') {
+                                // Parser returns windows drive letter in lowercase
+                                // Ignore case sensitivity, as windows file sytem is case-insensitive
+                                allFiles = _.map(allFiles, _.toLower);
+                                targetFilePath = targetFilePath.toLowerCase();
+
+                                // As parser simply returns appended path, transform file path to windows file path system
+                                targetFilePath = targetFilePath.replace(/\//g, '\\');
                             }
-                            else if (_.includes(allFiles, rootSpec + path) && fs.existsSync(rootSpec + path)) {
-                                resolve(fs.readFileSync(rootSpec + path).toString());
+                            if (_.includes(allFiles, targetFilePath) && fs.existsSync(targetFilePath)) {
+                                resolve(fs.readFileSync(targetFilePath).toString());
                             }
                             else {
-                                reject(new Error('Unable to find file ' + path + ' in uploaded data'));
+                                reject(new Error('Unable to find file ' + targetFilePath + ' in uploaded data'));
                             }
                         });
                     });
