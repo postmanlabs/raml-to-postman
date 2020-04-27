@@ -95,7 +95,15 @@ importer = {
             });
         };
         if (input.type === 'file') {
-            data = fs.readFileSync(input.data).toString();
+            try {
+                data = fs.readFileSync(input.data).toString();
+            }
+            catch (e) {
+                return callback({
+                    result: false,
+                    reason: e.message
+                });
+            }
             converter.parseString(data, success, failure);
         }
         else if(input.type === 'string') {
@@ -120,8 +128,7 @@ importer = {
             }
 
             async.each(rootSpecs, (rootSpec, cb) => {
-                var content = fs.readFileSync(rootSpec, 'utf8'),
-                    reader = new ramlParser.FileReader(function (path) {
+                var reader = new ramlParser.FileReader(function (path) {
                         return new Promise(function (resolve, reject) {
                             var decodedFullPath = decodeURIComponent(path);
 
@@ -182,7 +189,15 @@ importer = {
     validate: function(input) {
         let data;
         if (input.type === 'file') {
-            data = fs.readFileSync(input.data).toString();
+            try {
+                data = fs.readFileSync(input.data).toString();
+            }
+            catch (e) {
+                return {
+                    result: false,
+                    reason: e.message
+                };
+            }
             data = data.trim();
             return validateRAML(data);
         }
