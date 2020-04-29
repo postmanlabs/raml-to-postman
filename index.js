@@ -29,7 +29,7 @@ function guessRoot (files) {
 
 /**
  * 
- * @param {String} data - RAML 1.0 spec
+ * @param {String} data - RAML 0.8 spec
  * @returns {Object} - format {result: boolean, reason: string}
  */
 function validateRAML (data) {
@@ -215,7 +215,7 @@ importer = {
             if (_.isEmpty(rootFiles)) {
               return {
                 result: false,
-                reason: 'Imported folder does not contain Root of the RAML 1.0 Specs.'
+                reason: 'Imported folder does not contain Root of the RAML 0.8 Specs.'
               };
             }
             return {
