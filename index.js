@@ -1,7 +1,7 @@
 var converter = require('./lib/convert'),
-    yaml = require('js-yaml');
     async = require('async'),
     ramlParser = require('raml-parser'),
+    importer,
     _ = require('lodash'),
     fs = require('fs');
 
@@ -11,11 +11,16 @@ var converter = require('./lib/convert'),
  * @returns {Array} - Array of RAML 0.8 root files
  */
 function guessRoot (files) {
-    var rootFiles = [];
+    var rootFiles = [],
+        validationResult;
   
     _.forEach(files, (file) => {
-        if (importer.validate({ type: 'file', data: file.fileName }).result) {
-            rootFiles.push(file.fileName);
+        validationResult = importer.validate({ type: 'file', data: file.fileName });
+        if (validationResult.result) {
+            rootFiles.push({
+                fileName: file.fileName,
+                data: validationResult.data
+            });
         }
     });
   
@@ -24,7 +29,7 @@ function guessRoot (files) {
 
 /**
  * 
- * @param {String} data - RAML 1.0 spec
+ * @param {String} data - RAML 0.8 spec
  * @returns {Object} - format {result: boolean, reason: string}
  */
 function validateRAML (data) {
@@ -34,7 +39,7 @@ function validateRAML (data) {
         // most of the specs have title: in the second line itself
         // hence to avoid splitting the whole file by newline and then checking for title field
         if (data.startsWith('#%RAML 0.8\ntitle:')) {
-            return { result: true };
+            return { result: true, data };
         }
         else {
             let dataArray = data.split('\n'),
@@ -42,7 +47,7 @@ function validateRAML (data) {
                 return element.trim().startsWith('title:');
             })
             if (titleExist) {
-                return { result: true }
+                return { result: true, data }
             }
             else {
                 return {
@@ -95,7 +100,15 @@ importer = {
             });
         };
         if (input.type === 'file') {
-            data = fs.readFileSync(input.data).toString();
+            try {
+                data = fs.readFileSync(input.data).toString();
+            }
+            catch (e) {
+                return callback({
+                    result: false,
+                    reason: e.message
+                });
+            }
             converter.parseString(data, success, failure);
         }
         else if(input.type === 'string') {
@@ -120,16 +133,15 @@ importer = {
             }
 
             async.each(rootSpecs, (rootSpec, cb) => {
-                var content = fs.readFileSync(rootSpec, 'utf8'),
-                    reader = new ramlParser.FileReader(function (path) {
+                var reader = new ramlParser.FileReader(function (path) {
                         return new Promise(function (resolve, reject) {
                             var decodedFullPath = decodeURIComponent(path);
 
                             if (_.includes(allFiles, decodedFullPath) && fs.existsSync(decodedFullPath)) {
                                 resolve(fs.readFileSync(decodedFullPath).toString());
                             }
-                            else if (_.includes(allFiles, rootSpec + path) && fs.existsSync(rootSpec + path)) {
-                                resolve(fs.readFileSync(rootSpec + path).toString());
+                            else if (_.includes(allFiles, rootSpec.fileName + path) && fs.existsSync(rootSpec.fileName + path)) {
+                                resolve(fs.readFileSync(rootSpec.fileName + path).toString());
                             }
                             else {
                                 reject(new Error('Unable to find file ' + path + ' in uploaded data'));
@@ -137,7 +149,7 @@ importer = {
                         });
                     });
 
-                ramlParser.loadFile(rootSpec, { reader: reader })
+                ramlParser.loadFile(rootSpec.fileName, { reader: reader })
                     .then(function (result) {
                         converter.parseRaw(result, function (collection, environment) {
                             convertedSpecs.push(
@@ -180,9 +192,17 @@ importer = {
         }
     },
     validate: function(input) {
-        let data;
+        let data, rootFiles;
         if (input.type === 'file') {
-            data = fs.readFileSync(input.data).toString();
+            try {
+                data = fs.readFileSync(input.data).toString();
+            }
+            catch (e) {
+                return {
+                    result: false,
+                    reason: e.message
+                };
+            }
             data = data.trim();
             return validateRAML(data);
         }
@@ -191,13 +211,17 @@ importer = {
             return validateRAML(data);
         }
         else if (input.type === 'folder') {
-            if (_.isEmpty(guessRoot(input.data))) {
+            rootFiles = guessRoot(input.data);
+            if (_.isEmpty(rootFiles)) {
               return {
                 result: false,
-                reason: 'Imported folder does not contain Root of the RAML 1.0 Specs.'
+                reason: 'Imported folder does not contain Root of the RAML 0.8 Specs.'
               };
             }
-            return { result: true };
+            return {
+                result: true,
+                data: rootFiles[0].data
+            };
         }
         else {
             return { 
@@ -205,7 +229,12 @@ importer = {
                 reason: 'input type: ' + input.type + ' is not valid'
             };
         }
-    }
+    },
+
+    getMetaData: function(input, callback) {
+        var validation = importer.validate(input);
+        converter.getMetaData(validation.data, callback);
 }
+};
 
 module.exports = importer;
