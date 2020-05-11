@@ -226,7 +226,7 @@ importer = {
             }
             return {
                 result: true,
-                data: rootFiles[0].data
+                data: rootFiles[0].fileName
             };
         }
         else {
@@ -238,9 +238,11 @@ importer = {
     },
 
     getMetaData: function(input, callback) {
-        var validation = importer.validate(input);
-        converter.getMetaData(validation.data, callback);
-}
+        var validation = importer.validate(input),
+            allFiles = (input.type === 'folder' ? _.map(input.data, 'fileName') : []);
+
+        converter.getMetaData({ type: input.type, data: validation.data, allFiles }, callback);
+    }
 };
 
 module.exports = importer;
