@@ -1,5 +1,6 @@
 var converter = require('./lib/convert'),
     async = require('async'),
+    process = require('process'),
     ramlParser = require('raml-parser'),
     importer,
     _ = require('lodash'),
