@@ -1,6 +1,8 @@
+const { pathToFileURL } = require('url');
+
 var converter = require('./lib/convert'),
     async = require('async'),
-    process = require('process'),
+    path = require('path'),
     ramlParser = require('raml-parser'),
     importer,
     _ = require('lodash'),
@@ -137,8 +139,7 @@ importer = {
                 var reader = new ramlParser.FileReader(function (filePath) {
                         return new Promise(function (resolve, reject) {
                             var targetFilePath = decodeURIComponent(filePath);
-
-                            if (process.platform == 'win32' || process.platform == 'win64') {
+                            if (path.sep === '\\') {
                                 // Parser returns windows drive letter in lowercase
                                 // Ignore case sensitivity, as windows file sytem is case-insensitive
                                 allFiles = _.map(allFiles, _.toLower);
