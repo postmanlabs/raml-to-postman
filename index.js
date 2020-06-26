@@ -17,7 +17,9 @@ function guessRoot (files) {
         validationResult;
   
     _.forEach(files, (file) => {
-        data = file.content ? file.content : fs.readFileSync(file.fileName).toString();
+        // using the in operator since the file.content can have an empty string and that will be falsy
+        // But even in that case we shouldn't use fs
+        data = "content" in file ? file.content : fs.readFileSync(file.fileName).toString();
         validationResult = importer.validate({ type: 'string', data: data });
         if (validationResult.result) {
             rootFiles.push({
@@ -122,7 +124,9 @@ importer = {
             var rootSpecs = guessRoot(input.data),
                 data = input.data,
                 filesMap = {},
-                allFiles = _.map(input.data, 'fileName'),
+                allFiles = _.map(input.data, (file) => {
+                    return decodeURIComponent(path.resolve(file.fileName));
+                }),
                 convertedSpecs = [];
 
             if (_.isEmpty(rootSpecs)) {
@@ -139,10 +143,10 @@ importer = {
             }
 
             // Create files map of path <> content if the data has content key
-            if (data[0].content) {
+            if ('content' in data[0]) {
                 _.forEach(data, (file) => {
                     var filePath = decodeURIComponent(path.resolve(file.fileName));
-                    filesMap[filePath] = file.content;
+                    filesMap[filePath] = file.content ? file.content : '';
                 });
             }
 
