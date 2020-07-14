@@ -3,6 +3,7 @@ var converter = require('./lib/convert'),
     ramlParser = require('raml-parser'),
     importer,
     _ = require('lodash'),
+    path = require('path-browserify'),
     fs = require('fs');
 
 /**
@@ -12,14 +13,19 @@ var converter = require('./lib/convert'),
  */
 function guessRoot (files) {
     var rootFiles = [],
+        data,
         validationResult;
   
     _.forEach(files, (file) => {
-        validationResult = importer.validate({ type: 'file', data: file.fileName });
+        // using the in operator since the file.content can have an empty string and that will be falsy
+        // But even in that case we shouldn't use fs
+        data = "content" in file ? file.content : fs.readFileSync(file.fileName).toString();
+        validationResult = importer.validate({ type: 'string', data: data });
         if (validationResult.result) {
             rootFiles.push({
                 fileName: file.fileName,
-                data: validationResult.data
+                data: validationResult.data,
+                content: file.content ? file.content : ''
             });
         }
     });
@@ -116,7 +122,11 @@ importer = {
         }
         else if (input.type === 'folder') {
             var rootSpecs = guessRoot(input.data),
-                allFiles = _.map(input.data, 'fileName'),
+                data = input.data,
+                filesMap = {},
+                allFiles = _.map(input.data, (file) => {
+                    return decodeURIComponent(path.resolve(file.fileName));
+                }),
                 convertedSpecs = [];
 
             if (_.isEmpty(rootSpecs)) {
@@ -132,19 +142,32 @@ importer = {
                 });
             }
 
+            // Create files map of path <> content if the data has content key
+            if ('content' in data[0]) {
+                _.forEach(data, (file) => {
+                    var filePath = decodeURIComponent(path.resolve(file.fileName));
+                    filesMap[filePath] = file.content ? file.content : '';
+                });
+            }
+
             async.each(rootSpecs, (rootSpec, cb) => {
-                var reader = new ramlParser.FileReader(function (path) {
+                var reader = new ramlParser.FileReader(function (filePath) {
                         return new Promise(function (resolve, reject) {
-                            var decodedFullPath = decodeURIComponent(path);
+                            var decodedFullPath = decodeURIComponent(filePath);
+
+                            // Only check this if the filesMap object is populated with the files content
+                            if (!_.isEmpty(filesMap)) {
+                                resolve(filesMap[filePath]);
+                            }
 
                             if (_.includes(allFiles, decodedFullPath) && fs.existsSync(decodedFullPath)) {
                                 resolve(fs.readFileSync(decodedFullPath).toString());
                             }
-                            else if (_.includes(allFiles, rootSpec.fileName + path) && fs.existsSync(rootSpec.fileName + path)) {
-                                resolve(fs.readFileSync(rootSpec.fileName + path).toString());
+                            else if (_.includes(allFiles, rootSpec.fileName + filePath) && fs.existsSync(rootSpec.fileName + filePath)) {
+                                resolve(fs.readFileSync(rootSpec.fileName + filePath).toString());
                             }
                             else {
-                                reject(new Error('Unable to find file ' + path + ' in uploaded data'));
+                                reject(new Error('Unable to find file ' + filePath + ' in uploaded data'));
                             }
                         });
                     });
@@ -234,7 +257,7 @@ importer = {
     getMetaData: function(input, callback) {
         var validation = importer.validate(input);
         converter.getMetaData(validation.data, callback);
-}
+    }
 };
 
 module.exports = importer;
