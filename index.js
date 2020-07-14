@@ -257,7 +257,7 @@ importer = {
     getMetaData: function(input, callback) {
         var validation = importer.validate(input);
         converter.getMetaData(validation.data, callback);
-}
+    }
 };
 
 module.exports = importer;
