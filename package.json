@@ -1,6 +1,6 @@
 {
   "name": "raml-to-postman",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "Convert a given RAML spec to Postman spec",
   "main": "index.js",
   "com_postman_plugin": {
@@ -13,12 +13,13 @@
     "raml2postman": "./bin/raml2postman"
   },
   "dependencies": {
-    "uuid": ">=3.2.1",
-    "postman_validator": ">= 0.0.4",
-    "lodash": "4.17.13",
-    "raml-parser": ">= 0.8.7",
+    "async": "*",
     "commander": ">=2.15.1",
-    "async": "*"
+    "lodash": "4.17.13",
+    "path-browserify": "^1.0.1",
+    "postman_validator": ">= 0.0.4",
+    "raml-parser": ">= 0.8.7",
+    "uuid": ">=3.2.1"
   },
   "author": "Postman Labs <help@getpostman.com>",
   "license": "Apache",
