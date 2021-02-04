@@ -3,7 +3,8 @@ var converter = require('./lib/convert'),
     ramlParser = require('raml-parser'),
     importer,
     _ = require('lodash'),
-    path = require('path-browserify'),
+    // define path based on where module is used, `path-browserify` for browser env and `path` for node env
+    path = typeof process === 'object' ? require('path') : require('path-browserify'),
     fs = require('fs');
 
 /**
@@ -160,6 +161,14 @@ importer = {
                                 resolve(filesMap[filePath]);
                             }
 
+                            // handle file path for windows correctly
+                            if (path.sep === '\\') {
+                                // normalize path (correct separators will be used)
+                                decodedFullPath = path.normalize(decodedFullPath);
+                                // capitalize windows drive letter as parse is transforming it to small case
+                                decodedFullPath = _.toUpper(decodedFullPath.slice(0, 1)) + decodedFullPath.slice(1);
+                            }
+
                             if (_.includes(allFiles, decodedFullPath) && fs.existsSync(decodedFullPath)) {
                                 resolve(fs.readFileSync(decodedFullPath).toString());
                             }
@@ -167,7 +176,7 @@ importer = {
                                 resolve(fs.readFileSync(rootSpec.fileName + filePath).toString());
                             }
                             else {
-                                reject(new Error('Unable to find file ' + filePath + ' in uploaded data'));
+                                reject(new Error('Unable to find file ' + decodedFullPath + ' in uploaded data'));
                             }
                         });
                     });
