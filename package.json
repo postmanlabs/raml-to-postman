@@ -25,6 +25,7 @@
   "license": "Apache",
   "devDependencies": {},
   "scripts": {
+    "release": "./scripts/release.sh",
     "test": "echo \"Error: no test specified\" && exit 1"
   }
 }
