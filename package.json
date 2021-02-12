@@ -19,7 +19,9 @@
     "path-browserify": "^1.0.1",
     "postman_validator": ">= 0.0.4",
     "raml-parser": ">= 0.8.7",
-    "uuid": ">=3.2.1"
+    "raml1-to-postman": "^0.1.6",
+    "uuid": ">=3.2.1",
+    "webapi-parser": "0.5.0"
   },
   "author": "Postman Labs <help@getpostman.com>",
   "license": "Apache",

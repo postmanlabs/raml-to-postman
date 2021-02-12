@@ -1,4 +1,5 @@
 var converter = require('./lib/convert'),
+    getOptions = require('./lib/options').getOptions,
     async = require('async'),
     ramlParser = require('raml-parser'),
     importer,
@@ -6,6 +7,88 @@ var converter = require('./lib/convert'),
     // define path based on where module is used, `path-browserify` for browser env and `path` for node env
     path = typeof process === 'object' ? require('path') : require('path-browserify'),
     fs = require('fs');
+
+/**
+ * This function overrides options. If option is not present than default value ofrom getOptions() will be used.
+ * It also checks if availableOptions are present then option should be one of them, otherwise default will be used.
+ * And checks for type of option if it does not match than default is used.
+ *
+ * @param {Array} userOptions - Array of option objects received by convert function
+ * @returns {Object} overridden options
+ */
+function overrideOptions(userOptions) {
+  // predefined options
+  var defaultOptions = _.keyBy(getOptions(), 'id'),
+    retVal = {};
+
+  for (let id in defaultOptions) {
+    if (defaultOptions.hasOwnProperty(id)) {
+
+      // set the default value to that option if the user has not defined
+      if (userOptions[id] === undefined) {
+        retVal[id] = defaultOptions[id].default;
+
+        // ignore case-sensitivity for enum option with type string
+        if (defaultOptions[id].type === 'enum' && _.isString(retVal[id])) {
+          retVal[id] = _.toLower(defaultOptions[id].default);
+        }
+        continue;
+      }
+
+      // check the type of the value of that option came from the user
+      switch (defaultOptions[id].type) {
+        case 'boolean':
+          if (typeof userOptions[id] === defaultOptions[id].type) {
+            retVal[id] = userOptions[id];
+          }
+          else {
+            retVal[id] = defaultOptions[id].default;
+          }
+          break;
+        case 'enum':
+          // ignore case-sensitivity for string options
+          if ((defaultOptions[id].availableOptions.includes(userOptions[id])) ||
+            (_.isString(userOptions[id]) &&
+            _.map(defaultOptions[id].availableOptions, _.toLower).includes(_.toLower(userOptions[id])))) {
+            retVal[id] = userOptions[id];
+          }
+          else {
+            retVal[id] = defaultOptions[id].default;
+          }
+
+          // ignore case-sensitivity for string options
+          _.isString(retVal[id]) && (retVal[id] = _.toLower(retVal[id]));
+
+          break;
+        case 'array':
+          // user input needs to be parsed
+          retVal[id] = userOptions[id];
+
+          if (typeof retVal[id] === 'string') {
+            // eslint-disable-next-line max-depth
+            try {
+              retVal[id] = JSON.parse(userOptions[id]);
+            }
+            catch (e) {
+              // user didn't provide valid JSON
+              retVal[id] = defaultOptions[id].default;
+            }
+          }
+
+          // for valid JSON that's not an array, fallback to default
+          if (!Array.isArray(retVal[id])) {
+            retVal[id] = defaultOptions[id].default;
+          }
+
+          break;
+        default:
+          retVal[id] = defaultOptions[id].default;
+      }
+    }
+  }
+
+  return retVal;
+}
 
 /**
  *
@@ -73,9 +156,7 @@ function validateRAML (data) {
 };
 
 importer = {
-    getOptions: function() {
-        return [];
-    },
+    getOptions: getOptions,
     convert: function(input, options, callback) {
         // this function will be called by parseString function if conversion was successful
         var success = (collection, environment) => {
@@ -106,20 +187,37 @@ importer = {
                 reason: error
             });
         };
+
+        // Assign default options.
+        options = overrideOptions(options);
+
         if (input.type === 'file') {
-            try {
-                data = fs.readFileSync(input.data).toString();
-            }
-            catch (e) {
-                return callback({
-                    result: false,
-                    reason: e.message
+            if (options.convertWith10) {
+                data = input.data;
+                converter.convertWith10(data, options, (err, result) => {
+                    if (err) {
+                        return failure(err);
+                    }
+                    return callback(null, result);
                 });
             }
-            converter.parseString(data, success, failure);
+            else {
+                converter.parseString(data, success, failure);
+            }
         }
         else if(input.type === 'string') {
-            converter.parseString(input.data, success, failure)
+            if (options.convertWith10) {
+                    // converter.parseString(input.data, success, failure)
+                converter.convertWith10(data, options, (err, result) => {
+                    if (err) {
+                        return failure(err);
+                    }
+                    return callback(null, result);
+                });
+            }
+            else {
+                converter.parseString(input.data, success, failure)
+            }
         }
         else if (input.type === 'folder') {
             var rootSpecs = guessRoot(input.data),
