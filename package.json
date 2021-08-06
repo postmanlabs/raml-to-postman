@@ -15,7 +15,7 @@
   "dependencies": {
     "async": "*",
     "commander": ">=2.15.1",
-    "lodash": "4.17.13",
+    "lodash": "4.17.21",
     "path-browserify": "^1.0.1",
     "postman_validator": ">= 0.0.4",
     "raml-parser": ">= 0.8.7",
