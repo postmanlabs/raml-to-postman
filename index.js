@@ -4,7 +4,8 @@ var converter = require('./lib/convert'),
     importer,
     _ = require('lodash'),
     // define path based on where module is used, `path-browserify` for browser env and `path` for node env
-    path = typeof process === 'object' ? require('path') : require('path-browserify'),
+    path = require('path'),
+    pathBrowserify = require('path-browserify'),
     fs = require('fs');
 
 /**
@@ -77,6 +78,11 @@ importer = {
         return [];
     },
     convert: function(input, options, callback) {
+        // use browserified version if the input origin is a browser
+        if (input.origin === 'browser') {
+            path = pathBrowserify;
+        }
+
         // this function will be called by parseString function if conversion was successful
         var success = (collection, environment) => {
             return callback(null, {
@@ -225,6 +231,12 @@ importer = {
     },
     validate: function(input) {
         let data, rootFiles;
+
+        // use browserified version if the input origin is a browser
+        if (input.origin === 'browser') {
+            path = pathBrowserify;
+        }
+
         if (input.type === 'file') {
             try {
                 data = fs.readFileSync(input.data).toString();
