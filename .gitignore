@@ -7,3 +7,13 @@ out.json
 
 #vscode
 .vscode/
+
+### OSX template
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Test and coverage reports
+.tmp/
+.coverage/
+.nyc_output/
