@@ -1,0 +1,1430 @@
+#%RAML 0.8
+title: Zephyr Scale Server API (v1)
+version: 1.0
+baseUri: /rest/atm/{version}
+documentation:
+  - title: Getting Started
+    content: |
+      ## Accessing the API
+      The Zephyr Scale REST API is ready to use if you have Zephyr Scale installed on your JIRA instance.
+      All API uses the following base URL:
+      ```
+      http://your-jira-host:port/your-jira-context/rest/atm/1.0/
+      ```
+      For instance, you can create test results using the "testresult" api:
+      ```
+      POST http://localhost:2990/jira/rest/atm/1.0/testresult
+      ```
+      ## Authentication Basics
+      Any authentication that works with JIRA will work with the Zephyr Scale REST API.
+      The prefered authentication methods are OAuth and HTTP Basic. See the [JIRA SERVER REST API](https://developer.atlassian.com/server/jira/platform/rest-apis) docs for details.
+      ## Using Status and Environment Fields
+      Some entities, such as the Test Results, may have status and environment fields. The values of these fields are identified by name, not by the localized name.
+      Both fields may have custom values defined by the user on the Zephyr Scale configuration area. All values are **case sensitive**, and they must be set just as displayed on the add-on.
+
+      These are the default values, which must be used on the APIs instead of their localized versions:
+      * Test Cases:
+        * Draft
+        * Approved
+        * Deprecated
+
+      * Test Runs:
+        * Not Executed
+        * In Progress
+        * Done
+
+      * Test Results:
+        * Not Executed
+        * In Progress
+        * Pass
+        * Fail
+        * Blocked
+      ## Handling Date Format
+      The API supports the ISO 8601 format for date/time fields. This allows you to pass in the level of detail you need to. When a field is not specified, the earliest possible value is the default. For example, if you do not specify a time of day, we will default to 00:00 (midnight). Similarly, not specifying a timezone defaults the timezone to GMT. The full representation is of the format:
+      ```
+      yyyy-MM-ddTHH:mm:ss.SSSZ
+      ```
+      This table illustrates some example valid dates and times:
+
+      | Input | Equivalent to |
+      | ------ | ----------- |
+      | 2016 | 2016-01-01T00:00:00.000Z |
+      | 2016-04 | 2016-04-01T00:00:00.000Z |
+      | 2016-04-15 | 2016-04-15T00:00:00.000Z |
+      | 2016-04-15T16 | 2016-04-15T16:00:00.000Z |
+      | 2016-04-15T16:15 | 2016-04-15T16:15:00.000Z |
+      | 2016-04-15T16:15Z | 2016-04-15T16:15:00.000Z (GMT time zone) |
+      | 2016-04-15T16:15-0300 | 2016-04-15T16:15:00.000-0300 (Brazil time zone) |
+
+securitySchemes:
+  - oauth:
+      description: |
+          See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+      type: OAuth 1.0
+      settings:
+        requestTokenUri: JIRA_BASE_URL + "/plugins/servlet/oauth/request-token"
+        authorizationUri: JIRA_BASE_URL + "/plugins/servlet/oauth/authorize"
+        tokenCredentialsUri: JIRA_BASE_URL + "/plugins/servlet/oauth/access-token"
+  - basic:
+      description: |
+          See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+      type: Basic Authentication
+schemas:
+  - testresult: !include testresult.schema
+  - embeddedtestresult: !include embeddedtestresult.schema
+  - testcase: !include testcase.schema
+  - testrun: !include testrun.schema
+  - folder: !include folder.schema
+  - environment: !include environment.schema
+  - project: !include project.schema
+  - customfield: !include customfield.schema
+  - customfieldoption: !include customfieldoption.schema
+  - executiondeletion: !include executiondeletion.schema
+
+/testcase:
+  displayName: Test Case
+  post:
+    description: |
+      Creates a new Test Case.
+
+      Whitespace is not allowed for labels, and it will be replaced by an underscore character.
+      The field ```type``` of Test Script can have the values ```PLAIN_TEXT```, ```STEP_BY_STEP``` or ```BDD```. The field ```text``` describes the content of the plain text or BDD test script; otherwise, the steps can be described as objects using the field ```steps```.
+      Call To Tests can be added to the steps list by using the field ```testCaseKey``` with a Test Case key as value.
+      The optional field ```folder```, if defined, must contain an existent folder name. No folder will be created.
+      The fields ```status``` and ```priority``` will be set to default values if not defined.
+      The optional field parameters has two attributes: variables and entries. For attribute variables, two types are allowed: FREE_TEXT and DATA_SET. If using DATA_SET, an extra field should be informed, having the name of the dataset. If the dataset doesn’t exist, it will be automatically created. Attribute entries must only have values matching the informed variables. If a value of a dataset doesn’t exist, it will be automatically created for that dataset. Check the examples below for more details.
+    securedBy: [oauth, basic]
+    body:
+      application/json:
+        schema: testcase
+        example: !include testcase_post.example
+    responses:
+      201:
+        description: The Test Case was successfully created.
+        body:
+          application/json:
+            example: !include testcase_response_key.example
+      400:
+        description: Some parameters are invalid or not found.
+        body:
+          application/json:
+            example: !include testcase_response_fielderror.example
+      401:
+        description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+        body:
+          application/json:
+            example: !include response_autherror.example
+  /{testCaseKey}:
+    displayName: Test Case
+    uriParameters:
+      testCaseKey:
+        description: The key of the Test Case.
+        type: string
+        example: JQA-T1234
+    get:
+      description: |
+        Retrieve the Test Case matching the given key.
+      queryParameters:
+        fields:
+          description: The fields of the Test Case to be included on the response. If not set, all fields will be returned. Inexistent fields will be ignored.
+          example: key,name,folder,status,priority,component,owner,estimatedTime,labels,customFields,issueLinks
+          type: string
+          required: false
+      securedBy: [oauth, basic]
+      responses:
+        200:
+          description: The Test Case was successfully retrieved.
+          body:
+            application/json:
+              example: !include testcase_get.example
+        401:
+          description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+          body:
+            application/json:
+              example: !include response_autherror.example
+        404:
+          description: No Test Case has been found with the given key.
+    put:
+      description: |
+        Updates a Test Case.
+
+        Whitespace is not allowed for labels, and it will be replaced by an underscore character.
+        The field ```type``` of Test Script can have the values ```PLAIN_TEXT```, ```STEP_BY_STEP``` or ```BDD```. The field ```text``` describes the content of the plain text or BDD test script; otherwise, the steps can be described as objects using the field ```steps```.
+        The field ```folder```, if defined, must contain an existent folder name. No folder will be created.
+        Only fields present on the body will be updated. The field ```projectKey``` cannot be changed.
+        Call To Tests can be added to the steps list by using the field ```testCaseKey``` with a Test Case key as value.
+        The optional field parameters has two attributes: variables and entries. For attribute variables, two types are allowed: FREE_TEXT and DATA_SET. If using DATA_SET, an extra field should be informed, having the name of the dataset. If the dataset doesn’t exist, it will be automatically created. Attribute entries must only have values matching the informed variables. If a value of a dataset doesn’t exist, it will be automatically created for that dataset. Check the examples below for more details.
+        For the field ```testScript```, when it is a step-by-step script:
+        * If some step is missing in comparison to the target Test Case, it will be deleted.
+        * Steps not having ```id``` will be considered as a new step and will be created.
+        * Steps having ```id``` will be considered as existing steps and will be updated.
+      securedBy: [oauth, basic]
+      body:
+        application/json:
+          schema: testcase
+          example: !include testcase_put.example
+      responses:
+        200:
+          description: The Test Case was successfully updated.
+        400:
+          description: Some parameters are invalid or not found.
+          body:
+            application/json:
+              example: !include testcase_response_fielderror.example
+        401:
+          description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+          body:
+            application/json:
+              example: !include response_autherror.example
+    delete:
+      description: |
+        Delete the Test Case matching the given key.
+      securedBy: [oauth, basic]
+      responses:
+        204:
+          description: The Test Case was successfully deleted.
+        404:
+          description: No Test Case has been found with the given key.
+    /attachments:
+      displayName: Test Case Attachments
+      post:
+        description: Create a new attachment on the specified Test Case.
+        securedBy: [oauth, basic]
+        body:
+          multipart/form-data:
+            formParameters:
+              file:
+                description: The file to be uploaded, using ```multipart/form-data``` content type.
+                required: true
+                type: file
+        responses:
+          201:
+            description: The attachment was successfully created.
+            body:
+              application/json:
+                example: !include attachment_response_id.example
+          401:
+            description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+            body:
+              application/json:
+                example: !include response_autherror.example
+          404:
+            description: No Test Case has been found with the given key.
+      get:
+        description: |
+          Retrieve the Test Case Attachments matching the given key.
+        securedBy: [oauth, basic]
+        responses:
+          200:
+            description: The Test Case Attachments were successfully retrieved.
+            body:
+              application/json:
+                example: !include attachments_get.example
+          401:
+            description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+            body:
+              application/json:
+                example: !include response_autherror.example
+          404:
+            description: No Test Case has been found with the given key.
+    /testresult/latest:
+      displayName: Test Case Latest Result
+      get:
+        description: Retrieve the last test result for a given key
+        securedBy: [oauth, basic]
+        responses:
+          200:
+            description: The Last Test Result was successfully retrieved.
+            body:
+              application/json:
+                example: !include last_test_result_by_test_case.example
+          401:
+            description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+            body:
+              application/json:
+                example: !include response_autherror.example
+          404:
+            description: No Test Case has been found with the given key or the Test Case has no results.
+    /step/{stepIndex}/attachments:
+      displayName: Test Case Step Attachments
+      uriParameters:
+       stepIndex:
+        description: The index of the Test Case step.
+        type: integer
+        example: 1
+      get:
+        description: Retrieve the attachments for a test case step
+        securedBy: [oauth, basic]
+        responses:
+          200:
+            description: The test case step attachment was successfully retrieved.
+            body:
+              application/json:
+                example: !include attachments_get.example
+          401:
+            description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+            body:
+              application/json:
+                example: !include response_autherror.example
+          404:
+            description: No Test Case has been found with the given key or the Step Index was not found.
+      post:
+        description: Create a new attachment on the specified Step of a Test Case.
+        securedBy: [oauth, basic]
+        body:
+          multipart/form-data:
+            formParameters:
+              file:
+                description: The file to be uploaded, using ```multipart/form-data``` content type.
+                required: true
+                type: file
+        responses:
+          201:
+            description: The attachment was successfully created.
+            body:
+              application/json:
+                example: !include attachment_response_id.example
+          401:
+            description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+            body:
+              application/json:
+                example: !include response_autherror.example
+          404:
+            description: No Test Case has been found with the given key or the Step Index was not found.
+  /search:
+    displayName: Search Test Cases
+    get:
+      description: |
+        Retrieve the Test Cases that matches the query passed as parameter.
+      queryParameters:
+        fields:
+          description: The fields of the Test Case to be included on the response. If not set, all fields will be returned. Inexistent fields will be ignored.
+          example: key,name,folder,status,priority,component,owner,estimatedTime,labels,customFields,issueLinks
+          type: string
+          required: false
+        query:
+          description: |
+            A query to filter Test Cases. The query syntax is similar to the JIRA JQL.
+
+            * Available fields: ```projectKey```, ```key```, ```name```, ```status```, ```priority```, ```component```, ```folder```, ```estimatedTime```, ```labels```, ```owner``` and custom fields. When filtering by custom fields, the field name must be quoted.
+            * Available operators: ```=```, ```>```, ```>=```, ```<```, ```<=```, ```IN```
+            * For Single and Multi Choice custom fields, operator "=" is not supported, use "IN" instead
+            * Available logical operators: ```AND```
+
+            It is always a good idea considering using the ```projectKey``` field to match values that only belongs to that project, such as statuses, folders, etc.
+
+            Folders always have to start with a "/", for instance: "/a folder". The "/" matches the root, above all folders.
+
+            The query syntax is very strict. The use of whitespaces between fields, operators and logical operators is required, as well as the use of double quotes for string values.
+
+            Usage examples:
+            * projectKey = "JQA" AND status = "Draft" AND priority = "High"
+            * projectKey = "JQA" AND status IN ("Draft", "Deprecated") AND labels IN ("Functional", "UI")
+            * projectKey = "JQA" AND status IN ("Draft", "Deprecated") AND labels IN ("Functional", "UI")
+            * projectKey = "JQA" AND status = "Draft" AND folder = "/"
+            * projectKey = "JQA" AND folder = "/folder with some test cases"
+            * projectKey = "JQA" AND folder = "/folder with some test cases/child folder"
+            * projectKey = "JQA" AND folder IN ("/parent folder", "/parent folder/child folder")
+            * projectKey = "JQA" AND "My Custom Field" = "Some value"
+            * projectKey = "JQA" AND "Single Choice Custom Field" IN ("Some value")
+            * projectKey = "JQA" AND "Multi Choice Custom Field" IN ("Some value", "Another value")
+            * projectKey = "JQA" AND issueKeys IN ("JQA-5", "JQA-4")
+            * key IN ("JQA-T50", "JTQ-T90")
+            * key IN ("JQA-T50", "JTQ-T90") AND name = "My Test Case Name"
+          example: projectKey = "JQA" AND status = "Draft" AND priority = "High"
+          type: string
+          required: false
+        startAt:
+          description: An offset to use with the query. This can be useful when paginating results.
+          example: 10
+          type: integer
+          required: false
+        maxResults:
+          description: The max result count, limiting the query results. If not provided, the default value of 200 will be used.
+          example: 100
+          type: integer
+          required: false
+      securedBy: [oauth, basic]
+      responses:
+        200:
+          description: The Test Cases were successfully retrieved.
+          body:
+            application/json:
+              example: !include testcases_get.example
+        400:
+          description: Some parameters are invalid or not found.
+          body:
+            application/json:
+              example: !include testcase_search_response_error.example
+        401:
+          description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+          body:
+            application/json:
+              example: !include response_autherror.example
+/testplan:
+  post:
+    description: |
+      Creates a new Test Plan.
+
+      Whitespace is not allowed for labels, and it will be replaced by an underscore character.
+      The optional field ```folder```, if defined, must contain an existent folder name. No folder will be created.
+      The field ```status``` will be set to a default value if not defined.
+    securedBy: [oauth, basic]
+    body:
+      application/json:
+        schema: testplan
+        example: !include testplan_post.example
+    responses:
+      201:
+        description: The Test Plan was successfully created.
+        body:
+          application/json:
+            example: !include testplan_response_key.example
+      400:
+        description: Some parameters are invalid or not found.
+        body:
+          application/json:
+            example: !include testplan_response_fielderror.example
+      401:
+        description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+        body:
+          application/json:
+            example: !include response_autherror.example
+  /{testPlanKey}:
+    displayName: Test Plan
+    uriParameters:
+      testPlanKey:
+        description: The key of the Test Plan.
+        type: string
+        example: JQA-P1234
+    put:
+      description: |
+        Updates a Test Plan.
+
+        Whitespace is not allowed for labels, and it will be replaced by an underscore character.
+        The optional field ```folder```, if defined, must contain an existent folder name. No folder will be created.
+        The field ```status``` will be set to a default value if not defined.
+      securedBy: [oauth, basic]
+      body:
+        application/json:
+          schema: testplan
+          example: !include testplan_post.example
+      responses:
+        200:
+          description: The Test Plan was successfully updated.
+        400:
+          description: Some parameters are invalid or not found.
+          body:
+            application/json:
+              example: !include testplan_response_fielderror.example
+        401:
+          description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+          body:
+            application/json:
+              example: !include response_autherror.example
+    get:
+      description: |
+        Retrieve the Test Plan matching the given key.
+      queryParameters:
+        fields:
+          description: The fields of the Test Plan to be included on the response. If not set, all fields will be returned. Inexistent fields will be ignored.
+          example: key,name,status,objective,testRuns,customFields
+          type: string
+          required: false
+      securedBy: [oauth, basic]
+      responses:
+        200:
+          description: The Test Plan was successfully retrieved.
+          body:
+            application/json:
+              example: !include testplan_get.example
+        401:
+          description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+          body:
+            application/json:
+              example: !include response_autherror.example
+        404:
+          description: No Test Plan has been found with the given key.
+    delete:
+      description: |
+        Delete the Test Plan matching the given key.
+      securedBy: [oauth, basic]
+      responses:
+        204:
+          description: The Test Plan was successfully deleted.
+        404:
+          description: No Test Plan has been found with the given key.
+    /attachments:
+      displayName: Test Plan Attachment
+      post:
+        description: Create a new attachment on the specified Test Plan.
+        securedBy: [oauth, basic]
+        body:
+          multipart/form-data:
+            formParameters:
+              file:
+                description: The file to be uploaded, using ```multipart/form-data``` content type.
+                required: true
+                type: file
+        responses:
+          201:
+            description: The attachment was successfully created.
+            body:
+              application/json:
+                example: !include attachment_response_id.example
+          401:
+            description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+            body:
+              application/json:
+                example: !include response_autherror.example
+          404:
+            description: No Test Plan has been found with the given key.
+      get:
+        description: |
+          Retrieve the Test Plan Attachments matching the given key.
+        securedBy: [oauth, basic]
+        responses:
+          200:
+            description: The Test Plan Attachments were successfully retrieved.
+            body:
+              application/json:
+                example: !include attachments_get.example
+          401:
+            description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+            body:
+              application/json:
+                example: !include response_autherror.example
+          404:
+            description: No Test Plan has been found with the given key.
+  /search:
+    displayName: Search Test Plans
+    get:
+      description: |
+        Retrieve the Test Plans that matches the query passed as parameter.
+      queryParameters:
+        fields:
+          description: The fields of the Test Plan to be included on the response. If not set, all fields will be returned. Inexistent fields will be ignored.
+          example: key,name,folder,status,owner,labels,customFields
+          type: string
+          required: false
+        query:
+          description: |
+            A query to filter Test Plans. The query syntax is similar to the JIRA JQL.
+
+            * Available fields: ```projectKey```, ```key```, ```name```, ```status```, ```folder```, ```labels```, ```owner```, ```issueKeys``` and custom fields. When filtering by custom fields, the field name must be quoted.
+            * Available operators: ```=```, ```>```, ```>=```, ```<```, ```<=```, ```IN```
+            * For Single and Multi Choice custom fields, operator "=" is not supported, use "IN" instead
+            * Available logical operators: ```AND```
+
+            It is always a good idea considering using the ```projectKey``` field to match values that only belongs to that project, such as statuses, folders, etc.
+
+            Folders always have to start with a "/", for instance: "/a folder". The "/" matches the root, above all folders.
+
+            The query syntax is very strict. The use of whitespaces between fields, operators and logical operators is required, as well as the use of double quotes for string values.
+
+            Usage examples:
+            * projectKey = "JQA" AND status = "Draft"
+            * projectKey = "JQA" AND status IN ("Draft", "Deprecated") AND labels IN ("Functional", "UI")
+            * projectKey = "JQA" AND status = "Draft" AND folder = "/"
+            * projectKey = "JQA" AND folder = "/folder with some test plans"
+            * projectKey = "JQA" AND folder = "/folder with some test plans/child folder"
+            * projectKey = "JQA" AND folder IN ("/parent folder", "/parent folder/child folder")
+            * projectKey = "JQA" AND "My Custom Field" = "Some value"
+            * projectKey = "JQA" AND "Single Choice Custom Field" IN ("Some value")
+            * projectKey = "JQA" AND "Multi Choice Custom Field" IN ("Some value", "Another value")
+            * projectKey = "JQA" AND issueKeys IN ("JQA-5", "JQA-4")
+          example: projectKey = "JQA" AND status = "Draft"
+          type: string
+          required: false
+        startAt:
+          description: An offset to use with the query. This can be useful when paginating results.
+          example: 10
+          type: integer
+          required: false
+        maxResults:
+          description: The max result count, limiting the query results. If not provided, the default value of 200 will be used.
+          example: 100
+          type: integer
+          required: false
+      securedBy: [oauth, basic]
+      responses:
+        200:
+          description: The Test Plans were successfully retrieved.
+          body:
+            application/json:
+              example: !include testplans_get.example
+        400:
+          description: Some parameters are invalid or not found.
+          body:
+            application/json:
+              example: !include testcase_search_response_error.example
+        401:
+          description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+          body:
+            application/json:
+              example: !include response_autherror.example
+
+/testrun:
+  displayName: Test Run
+  securedBy: [oauth, basic]
+  post:
+    description: |
+      Creates a new Test Run.
+
+      The fields ```plannedStartDate``` and ```plannedEndDate``` will be set to default values if not defined.
+      The field ```status``` will be automatically inferred based on the status of Test Run Items (field ```items```).
+      The Test Run can be linked to a Test Plan, by setting a valid value on field testPlanKey. Also, it can be linked to an issue, by setting a valid value on field issueKey.
+      All Test Result fields are allowed for Test Run Items (field ```items```).
+    body:
+      application/json:
+        schema: testrun
+        example: !include testrun_post.example
+    responses:
+      201:
+        description: The Test Run was successfully created.
+        body:
+          application/json:
+            example: !include testrun_response_key.example
+      400:
+        description: Some parameters are invalid or not found.
+        body:
+          application/json:
+            example: !include testrun_response_fielderror.example
+      401:
+        description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+        body:
+          application/json:
+            example: !include response_autherror.example
+  /{testRunKey}:
+    displayName: Test Run
+    uriParameters:
+      testRunKey:
+        description: The key of the Test Run.
+        type: string
+        example: JQA-R1234
+    get:
+      description: |
+        Retrieve the Test Run matching the given key.
+      queryParameters:
+        fields:
+          description: The fields of the Test Run to be included on the response. If not set, all fields will be returned. Inexistent fields will be ignored.
+          example: key,name,version,iteration,items
+          type: string
+          required: false
+      securedBy: [oauth, basic]
+      responses:
+        200:
+          description: The Test Run was successfully retrieved.
+          body:
+            application/json:
+              example: !include testrun_get.example
+        401:
+          description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+          body:
+            application/json:
+              example: !include response_autherror.example
+        404:
+          description: No Test Run has been found with the given key.
+    delete:
+      description: |
+        Delete the Test Run matching the given key.
+      securedBy: [oauth, basic]
+      responses:
+        204:
+          description: The Test Run was successfully deleted.
+        404:
+          description: No Test Run has been found with the given key.
+    /attachments:
+      displayName: Test Run Attachment
+      post:
+        description: Create a new attachment on the specified Test Run.
+        securedBy: [oauth, basic]
+        body:
+          multipart/form-data:
+            formParameters:
+              file:
+                description: The file to be uploaded, using ```multipart/form-data``` content type.
+                required: true
+                type: file
+        responses:
+          201:
+            description: The attachment was successfully created.
+            body:
+              application/json:
+                example: !include attachment_response_id.example
+          401:
+            description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+            body:
+              application/json:
+                example: !include response_autherror.example
+          404:
+            description: No Test Run has been found with the given key.
+      get:
+        description: |
+          Retrieve the Test Run Attachments matching the given key.
+        securedBy: [oauth, basic]
+        responses:
+          200:
+            description: The Test Run Attachments were successfully retrieved.
+            body:
+              application/json:
+                example: !include attachments_get.example
+          401:
+            description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+            body:
+              application/json:
+                example: !include response_autherror.example
+          404:
+            description: No Test Run has been found with the given key.
+
+    /testcase/{testCaseKey}/testresult:
+      displayName: Test Result of Test Run
+      securedBy: [oauth, basic]
+      uriParameters:
+        testCaseKey:
+          description: The key of the Test Case
+          type: string
+          example: JQA-T1234
+      post:
+        description: |
+          Creates a new Test Result on the specified Test Run, looking for an item that matches the ```testCaseKey``` and the query string filter parameters.
+          If more than one item is found using the specified parameters, only the first one of them will have the new Test Result created.
+          Once created, the new Test Result can be seen inside the specified Test Run, looking for a Test Case that matches the request parameters.
+          The fields ```actualStartDate```, ```actualEndDate``` and ```status``` will be set to default values if not defined.
+
+          Deprecation notice - The fields ```executionDate``` and ```userKey``` are deprecated. Please use their new equivalents:
+
+          ```executionDate``` is now represented by ```actualEndDate```
+
+          ```userKey``` is now represented by ```executedBy```
+
+        queryParameters:
+          environment:
+            description: The environment to be optionally matched by an item on the Test Run.
+            example: Firefox
+            type: string
+          userKey:
+            description: The user key to be optionally matched by an item on the Test Run.
+            example: vitor.pelizza
+            type: string
+        body:
+          application/json:
+            schema: embeddedtestresult
+            example: !include embeddedtestresult_post.example
+        responses:
+          201:
+            description: The Test Result was successfully created.
+            body:
+              application/json:
+                example: !include testresult_response_id.example
+          400:
+            description: Some parameters are invalid or not found.
+            body:
+              application/json:
+                example: !include testresult_response_fielderror.example
+          401:
+            description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+            body:
+              application/json:
+                example: !include response_autherror.example
+      put:
+        description: |
+          Updates the last Test Result on the specified Test Run, looking for an item that matches the testCaseKey and the query string filter parameters. Only defined fields will be updated.
+          If more than one item is found using the specified parameters, only the first one of them will have the Test Result updated.
+          The updated data can be seen inside the specified Test Run, looking for the last Test Results of the Test Case that matches the request parameters.
+        queryParameters:
+          environment:
+            description: The environment to be optionally matched by an item on the Test Run.
+            example: Firefox
+            type: string
+          userKey:
+            description: The user key to be optionally matched by an item on the Test Run.
+            example: vitor.pelizza
+            type: string
+        body:
+          application/json:
+              schema: embeddedtestresult
+              example: !include embeddedtestresult_post.example
+        responses:
+          200:
+            description: The last Test Result was successfully updated.
+            body:
+              application/json:
+                example: !include testresult_response_id.example
+          400:
+            description: Some parameters are invalid or not found.
+            body:
+              application/json:
+                example: !include testresult_response_fielderror.example
+          401:
+            description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+            body:
+              application/json:
+                example: !include response_autherror.example
+
+  /{testRunKey}/testresults:
+    displayName: Retrieve All Test Results linked to a Test Run.
+    uriParameters:
+      testRunKey:
+        description: The key of the Test Run.
+        type: string
+        example: JQA-R1234
+    post:
+      description: |
+        Create new Test Results on the specified Test Run, looking for items that match the ```testCaseKey``` for each body item.
+        Once created, the new Test Results can be seen inside the specified Test Run, looking for Test Cases that match the request parameters.
+        The fields ```actualStartDate```, ```actualEndDate``` and ```status``` will be set to default values if not defined.
+
+        Deprecation notice - The fields ```executionDate``` and ```userKey``` are deprecated. Please use their new equivalents:
+
+        ```executionDate``` is now represented by ```actualEndDate```
+
+        ```userKey``` is now represented by ```executedBy```
+
+      queryParameters:
+        environment:
+          description: The environment to be optionally matched by an item on the Test Run.
+          example: Firefox
+          type: string
+        userKey:
+          description: The user key to be optionally matched by an item on the Test Run.
+          example: vitor.pelizza
+          type: string
+      body:
+        application/json:
+          schema: embeddedtestresult
+          example: !include embeddedtestresults_post.example
+      responses:
+        201:
+          description: The Test Results were successfully created.
+          body:
+            application/json:
+              example: !include testresult_response_ids.example
+        400:
+          description: Some parameters are invalid or not found.
+          body:
+            application/json:
+              example: !include testresult_response_fielderror.example
+        401:
+          description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+          body:
+            application/json:
+              example: !include response_autherror.example
+    get:
+      description: |
+        Retrieve All Test Results linked to a Test Run.
+      securedBy: [oauth, basic]
+      responses:
+        200:
+          description: The Test Result list was successfully retrieved.
+          body:
+            application/json:
+              example: !include testresults_by_testrun_get.example
+        401:
+          description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+          body:
+            application/json:
+              example: !include response_autherror.example
+        404:
+          description: No Test Run has been found with the given key.
+
+  /search:
+    displayName: Search Test Runs
+    get:
+      description: |
+        Retrieve the Test Runs that matches the query passed as parameter.
+      queryParameters:
+        fields:
+          description: The fields of the Test Run to be included on the response. If not set, all fields will be returned. Inexistent fields will be ignored.
+          example: key,name,version,iteration,items
+          type: string
+          required: false
+        query:
+          description: |
+            A query to filter Test Runs. The query syntax is similar to the JIRA JQL.
+
+            * Available fields: ```projectKey```, ```folder```
+            * Available operators: ```=```, ```IN```
+            * Available logical operators: ```AND```
+
+            The query syntax is very strict. The use of whitespaces between fields, operators and logical operators is required, as well as the use of double quotes for string values.
+
+            Usage example:
+            * projectKey = "JQA"
+            * projectKey IN ("JQA", "DEF")
+            * projectKey = "JQA" AND folder = "/Orbiter"
+            * projectKey IN ("JQA", "DEF") AND folder = "/Orbiter/Propellant"
+            * folder = "/Orbiter"
+          type: string
+          required: false
+        startAt:
+          description: An offset to use with the query. This can be useful when paginating results.
+          example: 10
+          type: integer
+          required: false
+        maxResults:
+          description: The max result count, limiting the query results. If not provided, the default value of 200 will be used.
+          example: 100
+          type: integer
+          required: false
+      securedBy: [oauth, basic]
+      responses:
+        200:
+          description: The Test Runs were successfully retrieved.
+          body:
+            application/json:
+              example: !include testruns_get.example
+        400:
+          description: Some parameters are invalid or not found.
+          body:
+            application/json:
+              example: !include testrun_search_response_error.example
+        401:
+          description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+          body:
+            application/json:
+              example: !include response_autherror.example
+/testresult:
+  displayName: Test Results
+  post:
+    description: |
+      Creates a new Test Result for a Test Case.
+
+      Once created, a new Test Result can be seen on the "Execution" tab of the specified Test Case. This Test Result is not linked with any Test Run.
+      The fields ```actualStartDate```, ```actualEndDate``` and ```status``` will be set to default values if not defined.
+
+      Deprecation notice - The fields ```executionDate``` and ```userKey``` are deprecated. Please use their new equivalents:
+
+      ```executionDate``` is now represented by ```actualEndDate```
+
+      ```userKey``` is now represented by ```executedBy```
+
+    securedBy: [oauth, basic]
+    body:
+      application/json:
+        schema: testresult
+        example: !include testresult_post.example
+    responses:
+      201:
+        description: The Test Result was successfully created.
+        body:
+          application/json:
+            example: !include testresult_response_id.example
+      400:
+        description: Some parameters are invalid or not found.
+        body:
+          application/json:
+            example: !include testresult_response_fielderror.example
+      401:
+        description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+        body:
+          application/json:
+            example: !include response_autherror.example
+  /{testResultId}/attachments:
+    displayName: Test Result Attachment
+    uriParameters:
+      testResultId:
+        description: The id of the Test Result.
+        type: integer
+        example: 123
+    post:
+      description: Create a new attachment on the specified Test Result.
+      securedBy: [oauth, basic]
+      body:
+        multipart/form-data:
+          formParameters:
+            file:
+              description: The file to be uploaded, using ```multipart/form-data``` content type.
+              required: true
+              type: file
+      responses:
+        201:
+          description: The attachment was successfully created.
+          body:
+            application/json:
+              example: !include attachment_response_id.example
+        401:
+          description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+          body:
+            application/json:
+              example: !include response_autherror.example
+        404:
+          description: No Test Result has been found with the given id.
+    get:
+      description: Retrieve the Test Result Attachments matching the given id.
+      securedBy: [oauth, basic]
+      responses:
+        200:
+          description: The Test Result Attachments were successfully retrieved.
+          body:
+            application/json:
+              example: !include attachments_get.example
+        401:
+          description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+          body:
+            application/json:
+              example: !include response_autherror.example
+        404:
+          description: No Test Case has been found with the given key.
+  /{testResultId}/step/{stepIndex}/attachments:
+    displayName: Test Result Step Attachment
+    uriParameters:
+      testResultId:
+        description: The id of the Test Result.
+        type: integer
+        example: 123
+      stepIndex:
+        description: The index of the Test Result step.
+        type: integer
+        example: 1
+    post:
+      description: Create a new attachment on the specified step of the Test Result.
+      securedBy: [oauth, basic]
+      body:
+        multipart/form-data:
+          formParameters:
+            file:
+              description: The file to be uploaded, using ```multipart/form-data``` content type.
+              required: true
+              type: file
+      responses:
+        201:
+          description: The attachment was successfully created.
+          body:
+            application/json:
+              example: !include attachment_response_id.example
+        401:
+          description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+          body:
+            application/json:
+              example: !include response_autherror.example
+        404:
+          description: No Test Result step has been found with the given id and index value.
+    get:
+      description: |
+        Retrieve the Test Result Step Attachments matching the given testResultId and stepIndex.
+      securedBy: [oauth, basic]
+      responses:
+        200:
+          description: The Test Result Step Attachments were successfully retrieved.
+          body:
+            application/json:
+              example: !include attachments_get.example
+        401:
+          description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+          body:
+            application/json:
+              example: !include response_autherror.example
+        404:
+          description: No Test Result Step has been found with the given testResultId and stepIndex.
+
+/issuelink/{issueKey}/testcases:
+  displayName: Issue Link
+  uriParameters:
+    issueKey:
+      description: The key of the linked Issue.
+      type: string
+      example: JQA-1234
+  get:
+    description: |
+      Retrieve all Test Cases linked to an Issue.
+    queryParameters:
+      fields:
+        description: The fields of the Test Case to be included on the response. If not set, all fields will be returned. Inexistent fields will be ignored.
+        example: key,name,folder,status,priority,component,owner,estimatedTime,labels,issueLinks
+        type: string
+        required: false
+    securedBy: [oauth, basic]
+    responses:
+      200:
+        description: The Test Cases were successfully retrieved.
+        body:
+          application/json:
+            example: !include testcases_get.example
+      401:
+        description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+        body:
+          application/json:
+            example: !include response_autherror.example
+      404:
+        description: No Issue has been found with the given key.
+/folder:
+  displayName: Folders
+  post:
+    description: |
+      Creates a new folder for test cases, test plans or test runs.
+
+      In order to create a new folder you must POST a json with 3 fields: projectKey, name and type. The field type can
+      be filled with TEST_CASE, TEST_PLAN or TEST_RUN.
+    securedBy: [oauth, basic]
+    body:
+      application/json:
+        schema: folder
+        example: !include folder_post.example
+    responses:
+      201:
+        description: The Folder was successfully created.
+        body:
+          application/json:
+            example: !include folder_response_id.example
+      400:
+        description: Some parameters are invalid or not found.
+        body:
+          application/json:
+            example: !include folder_response_fielderror.example
+      401:
+        description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+        body:
+          application/json:
+            example: !include response_autherror.example
+  /{folderId}:
+    displayName: Folder
+    uriParameters:
+      folderId:
+        description: The id of the Folder.
+        type: integer
+        example: 80
+    put:
+      description: |
+        Updates a folder for test cases, test plans or test runs.
+
+        You can only update the name or the custom field value of a folder, in order to do that you must PUT a json with 2 fields: name and customFields.
+        The field name is a String and forward and backslashes are not allowed.
+        The field customFields is an object with the key being the custom field name.
+      securedBy: [oauth, basic]
+      body:
+        application/json:
+          schema: folder
+          example: !include folder_put.example
+      responses:
+        200:
+          description: The Folder was successfully updated.
+        400:
+          description: Some parameters are invalid or not found.
+          body:
+            application/json:
+              example: !include folder_update_response_fielderror.example
+        401:
+          description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+          body:
+            application/json:
+              example: !include response_autherror.example
+/attachments/{id}:
+  displayName: Attachment
+  delete:
+    description: Delete an Attachment given an id
+    securedBy: [oauth, basic]
+    responses:
+      204:
+        description: The Attachment was successfully deleted.
+      400:
+        description: The Attachment can't be deleted.
+        body:
+            application/json:
+              example: !include attachment_response_cant_delete.example
+      404:
+        description: No Attachment has been found with the given id.
+
+/environments:
+  displayName: Environments
+  get:
+    description: |
+      Retrieve the Environments matching the given projectKey.
+
+      The project must exist
+      The project must have Zephyr Scale enabled
+    queryParameters:
+      projectKey:
+        description: The key of the Project
+        example: JQA
+        type: string
+        required: true
+    securedBy: [oauth, basic]
+    responses:
+      200:
+        description: The Environments were successfully retrieved.
+        body:
+          application/json:
+            example: !include environments_get.example
+      401:
+        description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+        body:
+          application/json:
+            example: !include response_autherror.example
+      400:
+        description: Some parameters are invalid or not found.
+        body:
+          application/json:
+            example: !include environments_get_response_fielderror.example
+  post:
+    description: |
+      Creates a new Environment.
+
+      The project must exist
+      The project must have Zephyr Scale enabled
+      The name must be unique
+
+    securedBy: [oauth, basic]
+    body:
+      application/json:
+        schema: environment
+        example: !include environments_post.example
+    responses:
+      201:
+        description: The Environment was successfully created.
+        body:
+          application/json:
+            example: !include environments_response_id.example
+      400:
+        description: Some parameters are invalid or not found.
+        body:
+          application/json:
+            example: !include environments_response_post_fielderror.example
+      401:
+        description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+        body:
+          application/json:
+            example: !include response_autherror.example
+/automation/execution/{projectKey}:
+  uriParameters:
+    projectKey:
+      description: The key of the Project.
+      type: string
+      example: JQA
+  post:
+    description: |
+      Creates a new Test Cycle based on provided automated test results.
+      This endpoint receives a zip file containing one or more Zephyr Scale Test Results File Format to create the Test Cycle. See [Zephyr Scale JUnit Integration](https://bitbucket.org/smartbeartm4j/tm4j-junit-integration) to learn how to generate this file.
+      Optionally, you can send a `testCycle` part in your form data to customize the created Test Cycle.
+    securedBy: [oauth, basic]
+    body:
+      multipart/form-data:
+        formParameters:
+          file:
+            description: The file to be uploaded, using ```multipart/form-data``` content type.
+            required: true
+            type: file
+          testCycle:
+            description: A JSON object to customize the new Test Cycle.
+            required: false
+            type: string
+            example: !include automation_testcycle_formparam.example
+    responses:
+      201:
+        description: The Test Run was successfully created.
+        body:
+          application/json:
+            example: !include automation_post_response.example
+      400:
+        description: Some parameters are invalid or not found.
+        body:
+          application/json:
+            example: !include automation_custom_file_response_post_error.example
+      401:
+        description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+        body:
+          application/json:
+            example: !include response_autherror.example
+
+/automation/execution/cucumber/{projectKey}:
+  uriParameters:
+    projectKey:
+      description: The key of the Project.
+      type: string
+      example: JQA
+  post:
+    description: |
+      Creates a new Test Cycle based on provided automated test results.
+      This endpoint receives a zip file containing one or more [Cucumber Json Output file](https://relishapp.com/cucumber/cucumber/docs/formatters/json-output-formatter).
+      Optionally, you can send a `testCycle` part in your form data to customize the created Test Cycle.
+    securedBy: [oauth, basic]
+    body:
+      multipart/form-data:
+        formParameters:
+          file:
+            description: The file to be uploaded, using ```multipart/form-data``` content type.
+            required: true
+            type: file
+          testCycle:
+            description: A JSON object to customize the new Test Cycle.
+            required: false
+            type: string
+            example: !include automation_testcycle_formparam.example
+    responses:
+      201:
+        description: The Test Run was successfully created.
+        body:
+          application/json:
+            example: !include automation_post_response.example
+      400:
+        description: Some parameters are invalid or not found.
+        body:
+          application/json:
+            example: !include automation_custom_file_response_post_error.example
+      401:
+        description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+        body:
+          application/json:
+            example: !include response_autherror.example
+
+/automation/testcases:
+  get:
+    description: |
+      Retrieve a zip file containing Cucumber Feature Files that matches the tql passed as parameter.
+    queryParameters:
+      tql:
+        description: |
+          A Zephyr Scale TQL to filter Test Cases. The param syntax is similar to the JIRA JQL.
+
+          * Available fields: ```projectKey```.
+          * Available operators: ```=```, ```IN```
+
+          Usage examples:
+          * testCase.projectKey = 'JQA'
+          * testCase.projectKey IN ('JQA', 'JQB')
+        example: testCase.projectKey = 'JQA'
+        type: string
+        required: true
+    securedBy: [oauth, basic]
+    responses:
+        200:
+          description: The Cucumber Feature Files were successfully retrieved.
+          body:
+            multipart/form-data:
+              example: !include automation_testcases_get.example
+        204:
+          description: No Test Cases found for the query.
+        401:
+          description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+          body:
+            application/json:
+              example: !include response_autherror.example
+
+/project:
+  post:
+    description: |
+      Create a Zephyr Scale project for an existing Jira project. If the Zephyr Scale project exists, enable/disable it
+    securedBy: [oauth, basic]
+    body:
+      application/json:
+        schema: project
+        example: !include project_post.example
+    responses:
+        201:
+          description: The Zephyr Scale Project was successfully created.
+          body:
+            application/json:
+              example: !include project_post_response.example
+        400:
+          description: Some parameters are invalid or not found.
+          body:
+            application/json:
+              example: !include project_response_invalidproject.example
+        401:
+          description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+          body:
+            application/json:
+              example: !include response_autherror.example
+
+/customfield:
+  post:
+    description: |
+      Creates a new custom field for test cases, test plans, test runs, test result or folder.
+      The custom fied name must be unique by project and category.
+
+      Custom fields must have one of these categories:
+      `TEST_PLAN`, `TEST_RUN`, `TEST_STEP`, `TEST_EXECUTION`, `TEST_CASE` or `FOLDER`.
+
+      Custom fields must have of these types: `SINGLE_LINE_TEXT`, `MULTI_LINE_TEXT`, `NUMBER`, `DATE`, `SINGLE_CHOICE_SELECT_LIST`,
+      `CHECKBOX`, `DECIMAL`, `MULTI_CHOICE_SELECT_LIST` or `USER_LIST`.
+    securedBy: [oauth, basic]
+    body:
+      application/json:
+        schema: customfield
+        example: !include customfield_post.example
+    responses:
+        201:
+          description: The custom field was successfully created.
+          body:
+            application/json:
+              example: !include customfield_post_response.example
+        400:
+          description: Some parameters are invalid or not found.
+          body:
+            application/json:
+              example: !include customfield_response_duplicatedname.example
+        401:
+          description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+          body:
+            application/json:
+              example: !include response_autherror.example
+
+/customfield/{customFieldId}/option:
+  post:
+    description: |
+      Creates a new custom field option for `SINGLE_CHOICE_SELECT_LIST` or `MULTI_CHOICE_SELECT_LIST` custom field.
+    securedBy: [oauth, basic]
+    body:
+      application/json:
+        schema: customfieldoption
+        example: !include customfieldoption_post.example
+    responses:
+        201:
+          description: The custom field option was successfully created.
+          body:
+            application/json:
+              example: !include customfieldoption_post_response.example
+        400:
+          description: Some parameters are invalid or not found.
+          body:
+            application/json:
+              example: !include customfieldoption_response_notsupported.example
+        401:
+          description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+          body:
+            application/json:
+              example: !include response_autherror.example
+
+/delete/executiondeletion:
+    post:
+      description: |
+        Starts the deletion process of Test Executions (also known as Test Results). This process only removes executions older than 3 months and it will keep the last test executions.
+        Only Jira Admin users can execute this process.
+      securedBy: [ oauth, basic ]
+      body:
+        application/json:
+          schema: executiondeletion
+          example: !include executiondeletion.example
+      responses:
+        200:
+          description: The deletion process has started.
+          body:
+            application/json:
+              example: !include executiondeletion_post_response.example
+        400:
+          description: Some parameters are invalid (For example&#58; You cannot delete executions created in the last 3 months)
+          body:
+            application/json:
+              example: !include executiondeletion_response_invalid_date.example
+        401:
+          description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+          body:
+            application/json:
+              example: !include response_autherror.example
+
+/delete/executiondeletion/status:
+   get:
+     description: |
+       Gets the status of the test execution deletion process. The statuses can be: IN_PROGRESS, FINISHED or FAILED.
+     securedBy: [ oauth, basic ]
+     responses:
+       200:
+         description: The Status of the deletion process was successfully retrieved.
+         body:
+           application/json:
+             example: !include executiondeletion_status_get_response.example
+       401:
+         description: Authentication error. See the [JIRA REST API](http://docs.atlassian.com/jira/REST/latest) docs for details.
+         body:
+           application/json:
+             example: !include response_autherror.example
