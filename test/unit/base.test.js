@@ -39,6 +39,38 @@ describe('CONVERT FUNCTION TESTS ', function() {
     });
   });
 
+  it('The converter should throw an UserError when provided input type is invalid', function(done) {
+    var data = 'Invalid RAML file',
+        input = {
+          data: data,
+          type: 'whateva'
+        };
+
+      Converter.convert(input, {}, function(err, result) {
+        console.log(err, result);
+        expect(err).to.not.be.null;
+        expect(err.name).to.eql('UserError');
+        expect(err.message).to.eql('input type: ' + input.type + ' is not valid');
+        done();
+      });
+  });
+
+  it('The converter should throw an UserError when provided definition is invalid RAML file', function(done) {
+    var data = 'Invalid RAML file',
+        input = {
+          data: data,
+          type: 'string'
+        };
+
+      Converter.convert(input, {}, function(err, result) {
+        console.log(err, result);
+        expect(err).to.not.be.null;
+        expect(err.name).to.eql('UserError');
+        expect(err.message).to.eql('The first line must be: \'#%RAML 0.8\'');
+        done();
+      });
+  });
+
   it('The converter should convert raml spec to postman collection ' +
       'with remote references present', function(done) {
     Converter.convert({
