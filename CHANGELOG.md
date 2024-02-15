@@ -1,5 +1,11 @@
 # RAML v0.8 to Postman collection Changelog
 
+## [Unreleased]
+
+### Added
+
+-   Added support for reporting UserErrors when provided definitions are invalid.
+
 #### v2.0.8 (March 17, 2023)
 * Fixed an issue where RAML 0.8 with remote reference was not working correctly.
 
