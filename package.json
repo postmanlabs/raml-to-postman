@@ -3,6 +3,9 @@
   "version": "2.0.8",
   "description": "Convert a given RAML spec to Postman spec",
   "main": "index.js",
+  "engines": {
+    "node": ">=16"
+  },
   "com_postman_plugin": {
     "plugin_type": "importer",
     "name": "RAML 0.8 to Postman",
