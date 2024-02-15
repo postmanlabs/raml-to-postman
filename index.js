@@ -1,4 +1,5 @@
 var converter = require('./lib/convert'),
+    UserError = require('./UserError'),
     async = require('async'),
     ramlParser = require('raml-parser'),
     importer,
@@ -101,12 +102,10 @@ importer = {
         },
         // this function will be called by parseString function if conversion failed
         failure = (error) => {
-            if(typeof error === 'string' && error.includes('cannot fetch')) {
-                return callback({
-                    result: false,
-                    reason: 'External references are not supported yet. ' + error
-                });
+            if (error instanceof Error && error.name === 'UserError') {
+                return callback(error);
             }
+
             return callback({
                 result: false,
                 reason: error
@@ -117,10 +116,7 @@ importer = {
                 data = fs.readFileSync(input.data).toString();
             }
             catch (e) {
-                return callback({
-                    result: false,
-                    reason: e.message
-                });
+                return callback(new UserError(e.message, e));
             }
             converter.parseString(data, success, failure);
         }
@@ -182,7 +178,7 @@ importer = {
                                 resolve(fs.readFileSync(rootSpec.fileName + filePath).toString());
                             }
                             else {
-                                reject(new Error('Unable to find file ' + decodedFullPath + ' in uploaded data'));
+                                reject(new UserError('Unable to find file ' + decodedFullPath + ' in uploaded data'));
                             }
                         });
                     });
@@ -223,10 +219,7 @@ importer = {
             });
         }
         else {
-            return callback({
-                result: false,
-                reason: 'input type: ' + input.type + ' is not valid'
-            });
+            return callback(new UserError('input type: ' + input.type + ' is not valid'));
         }
     },
     validate: function(input) {

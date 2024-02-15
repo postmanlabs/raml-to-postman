@@ -2,3 +2,15 @@ sample_files
 node_modules
 test/
 scripts/
+
+# IDE Stuff
+.vscode/
+.idea/
+
+# GitHub actions
+.github/
+
+# Test and coverage reports
+.tmp/
+.coverage/
+.nyc_output/
